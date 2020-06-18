@@ -5,9 +5,13 @@
     become: true
     remote_user: ec2-user
     gather_facts: true
+    vars_prompt:
+    - name: "Operation"
+      prompt: "select the os flavour"
+
     tasks:
         -      
-         name: Install LAMP services  
+         name: Install LAMP services  in '{{os_flavour}}'
          yum: 
             name: '{{ item }}'
             state: present
@@ -16,6 +20,7 @@
            - mysql-server
            - php
            - php-mysql
+         when: (os_flavour == 'CentOS'or os_flavour == 'Red Hat Enterprise Linux')
            
         -  
           name: Starting apache services  
@@ -28,6 +33,31 @@
           with_items:
                  - httpd
                  - mysqld
+          when: (os_flavour == 'CentOS'or os_flavour == 'Red Hat Enterprise Linux')
+        -  name: Install LAMP services  in '{{os_flavour}}'
+           apt: 
+            name: '{{ item }}'
+            state: present
+           with_items:
+           - apache
+           - mysql-server
+           - php
+           - libapache2-mod-php
+           - php-mysql
+           when: (os_flavour == 'Debian'or os_flavour == 'Ubuntu')
+           
+        -  
+          name: Starting apache services  
+          become_user: root
+          become: yes
+          service: 
+               name: '{{ item }}'
+               state: started 
+               enabled: yes
+          with_items:
+                 - apache
+                 - mysql-server
+          when: (os_flavour == 'Debian'or os_flavour == 'Ubuntu')
                   
         - name: create target directory
           file: path=/var/www/html state=directory mode=0755
